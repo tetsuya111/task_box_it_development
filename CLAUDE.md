@@ -8,26 +8,25 @@
 
 「タスク百葉箱」— 小規模ツール開発を気軽に依頼できる受付プラットフォーム。依頼者がAIチャットボットと雑談形式で対話しながら要件サマリーと見積もりの概算を作成し、まとまった内容を管理者（開発者本人）へ送信する。プロダクトの前提は [.kiro/steering/product.md](.kiro/steering/product.md) を参照。
 
-## 現状とプロジェクト構成
+## プロジェクト構成
 
-現在は構想・プロンプト設計の段階で、アプリ本体は未作成。リポジトリにあるのは以下のみ。
+以下の2つの独立したアプリからなるモノレポ。両者は共通のビルドツールを持たず、HTTP経由でのみやり取りする。
 
-- `memo/` — 構想メモ、エージェントのプロンプト草案、見積もり基準（`memo/雑多な/ITビジネス/タスク百葉箱/` 配下がこのプロダクトの一次情報）
-- `.kiro/` — steering / specs / hooks（後述）
+- `backend/` — Django REST Framework による API（Google認証 + JWT、LLMはデフォルトで Claude）
+- `frontend/` — Next.js（App Router, TypeScript）による React フロントエンド
 
-アプリ本体は以下の2つの独立したアプリからなるモノレポとして作成する予定。両者は共通のビルドツールを持たず、HTTP経由でのみやり取りする。
+このほかに、`memo/`（構想メモとエージェントのプロンプト草案。`memo/雑多な/ITビジネス/タスク百葉箱/` 配下がこのプロダクトの一次情報）と `.kiro/`（後述）がある。
 
-- `backend/` — Django REST Framework による API（LLMはデフォルトで Claude、Embedding は Voyage AI、RAG あり）
-- `frontend/` — Next.js（TypeScript）による React フロントエンド
+実装済みの機能は [.kiro/specs/hearing-chat-site/](.kiro/specs/hearing-chat-site/requirements.md)（ヒアリングチャットサイト）。RAG（Embedding は Voyage AI を予定）は未実装で、後の追加仕様とする。
 
-技術選定の詳細は [.kiro/steering/tech.md](.kiro/steering/tech.md)、ディレクトリ構成は [.kiro/steering/structure.md](.kiro/steering/structure.md) を参照。
+技術選定は [.kiro/steering/tech.md](.kiro/steering/tech.md)、ディレクトリ構成は [.kiro/steering/structure.md](.kiro/steering/structure.md) を参照。
 
-## ドキュメント
+## ドキュメント一覧
 
 詳細は各ドキュメントに一本化し、このファイルは索引とする。新しい詳細情報を追記する際は、このファイルに直接書かず該当ドキュメントを更新すること。
 
-- `docs/` は未作成。`backend/` / `frontend/` を作成する際に、セットアップ・コマンド・設定・アーキテクチャを `docs/backend.md` / `docs/frontend.md` にまとめ、ここへリンクを追加する。
-- それまでは `.kiro/steering/` と `memo/` を参照する。
+- [docs/backend.md](docs/backend.md) — バックエンドのセットアップ、コマンド、環境変数、アーキテクチャ、インフラへの申し送り事項
+- [docs/frontend.md](docs/frontend.md) — フロントエンドのセットアップ、コマンド、環境変数、アーキテクチャ
 
 ## 開発ワークフロー（`.kiro/`）
 
@@ -41,7 +40,7 @@ AWS Kiroの Steering / Specs / Agent Hooks の考え方を、このリポジト�
 
 ## エージェントのプロンプトを扱う際の注意
 
-このプロダクトの中核は、`memo/` 配下にあるエージェントのプロンプト（ヒアリングbot、要件サマリー作成、相場見積もり、自分見積もり）である。
+このプロダクトの中核は、エージェントのプロンプト（ヒアリングbot、要件サマリー作成、相場見積もり、自分見積もり）である。草案は `memo/` 配下、アプリの初期値は `backend/agents/seed_prompts/`、稼働中の値はDB（Djangoの管理サイトで編集）にある。`seed_prompts/` を編集しても既存のDBには反映されない。
 
 - 要件サマリーの項目（目的 / ほしい機能 / 期間のレンジ / 予算のレンジ / ゴール（最低基準） / セキュリティ）は全エージェントで共通。変更する際はすべてのプロンプトと [.kiro/steering/product.md](.kiro/steering/product.md) を揃えること。
 - 依頼者はITに疎い非エンジニアを想定している。依頼者向けの文言・UIでは専門用語を避け、情報量を最小限にする。
@@ -81,5 +80,7 @@ Claude Codeとのやり取りではコンテキスト消費（トークン使用
 
 - リポジトリ内の `README.md`（ルート、`backend/`、`frontend/` などすべて）は日本語で記載すること。
 - `memo/` 配下は日本語のファイル名（macOS由来のNFD形式）を含む。Windowsのシェル出力では文字化けすることがあるため、内容を確認する際はUTF-8を明示して読むこと。
-- LLM・Embedding のAPIキーなどの秘密情報は環境変数で渡し、コミットしない。`backend/` / `frontend/` を作成する際はそれぞれ独立した `.gitignore` / `.env.example` を用意すること。
-- ローカルでのクロスオリジンリクエスト（`localhost:3000` ↔ `localhost:8000`）を機能させるため、バックエンドのCORSオリジン設定とフロントエンドの `NEXT_PUBLIC_API_BASE_URL` は整合性を保つこと。
+- LLM のAPIキーなどの秘密情報は環境変数で渡し、コミットしない。バックエンドとフロントエンドはそれぞれ独立した `.gitignore` / `.env.example` を持つ。環境依存の設定を追加する際は両方を確認すること。
+- ローカルでのクロスオリジンリクエスト（既定は `localhost:3000` ↔ `localhost:8000`）を機能させるため、バックエンドの `CORS_ALLOWED_ORIGINS` とフロントエンドの `NEXT_PUBLIC_API_BASE_URL` は整合性を保つこと。
+- 同じPCで別プロジェクト（community_sns）の開発サーバーが 8000 / 3000 番を使っていることがある。Windowsでは同じポートで二重に起動できてしまい、別プロジェクトの応答が返ってくるため、その場合は 8001 / 3001 番など別のポートで起動し、上記の2つの設定を合わせること。起動中の他プロジェクトのプロセスは止めないこと。
+- バックエンドのテストは実際のLLMを呼ばない（偽のクライアントに差し替える）。実際のLLMでの確認は、費用がかかるためユーザーの了承を得てから行うこと。

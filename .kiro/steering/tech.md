@@ -4,19 +4,22 @@ inclusion: always
 
 # 技術スタック
 
-アプリ本体は未作成のため、以下は採用予定の構成。実装が始まり `docs/` が整備されたら、コマンドや設定の詳細はそちらに一本化し、このファイルからはリンクのみ行う。
-
-- **バックエンド**: Python + Django + Django REST Framework。
-- **フロントエンド**: Next.js + React + TypeScript。
-- **LLM**: デフォルトは Claude。使用するモデルは環境変数で切り替えられるようにする。
-- **Embedding**: Voyage AI。
-- **RAG**: ベストプラクティスに従って実装する。
-- **インフラ**: このリポジトリの対象外（別途作成する）。
+- **バックエンド**: Python + Django + Django REST Framework。詳細・コマンドは [docs/backend.md](../../docs/backend.md)。
+- **フロントエンド**: Next.js（App Router）+ React + TypeScript + Tailwind CSS。詳細・コマンドは [docs/frontend.md](../../docs/frontend.md)。
+- **認証**: Google認証（IDトークンをバックエンドで検証）+ ステートレスJWT。アクセストークンはフロントのメモリ、リフレッシュトークンは httpOnly Cookie。
+- **LLM**: Claude（Anthropic Python SDK）。モデルは環境変数 `LLM_MODEL` で切り替える（既定値 `claude-opus-5`）。
+- **データベース**: `DATABASE_URL` 環境変数で切り替え。開発環境は sqlite がデフォルト、本番は PostgreSQL を想定。
+- **Embedding / RAG**: Voyage AI を使う予定だが未実装（後の追加仕様）。
+- **インフラ**: このリポジトリの対象外（別途作成する）。申し送り事項は [docs/backend.md](../../docs/backend.md) にある。
 - **構成方針**: `backend/` と `frontend/` に分割し、両者はHTTP経由でのみ通信する。ビルドツールは共有しない。
 
 ## 設計上の方針
 
-- 画面はモダンかつカジュアルに、simple is best。
-- チャットボットが他のエージェントを自動で呼び出す際は、必ずダイアログでユーザーの許可を取る。
-- エージェントのプロンプト（ヒアリング、要件サマリー作成、相場見積もり、自分見積もり）はコードに埋め込まず、差し替え可能な形で管理する。
+- 画面はモダンかつカジュアルに、simple is best。依頼者向けの文言には専門用語を使わない。
+- エージェントは「ロールプロンプトを持ち、入力を与えると出力を返す」だけの薄いクラスとし、エージェント同士は直接呼び合わない。受け渡しは常にバックエンドのサービス層が仲介する。
+- 依頼者の入力を起点に他のエージェントを呼び出す際は、必ずダイアログでユーザーの許可を取る。
+- 機械的に解釈するLLMの出力は、自由文ではなく構造化出力（JSONスキーマ）で受け取る。
+- エージェントのプロンプトはコードに埋め込まず、DBで差し替え可能にする。
 - APIキーなどの秘密情報は環境変数で渡し、リポジトリにコミットしない。
+
+コマンドや設定の詳細をここに重複して書かず、更新時は必ず [docs/backend.md](../../docs/backend.md) / [docs/frontend.md](../../docs/frontend.md) 側を更新すること。
